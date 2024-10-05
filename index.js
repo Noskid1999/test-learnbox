@@ -1,5 +1,6 @@
 const express = require("express");
 const mongoose = require("mongoose");
+const session = require("express-session");
 const UserModel = require("./userModel.js");
 
 const url = "mongodb://localhost:27017/learnboxdb";
@@ -19,6 +20,12 @@ const app = express();
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(session({
+  secret: "secret-key",
+  resave: false,
+  saveUninitialized: false
+}));
+
 
 app.get("/login", (req, res) => {
   res.sendFile("./login.html", { root: __dirname });
@@ -94,7 +101,10 @@ app.post("/login", async function (req, res) {
   const user = await UserModel.findOne({ email: email }).exec();
   if (user) {
     if (user.password == password) {
+      req.session.isLoggedIn = true;
       console.log("Login successful");
+      req.session.userEmail = email;
+      res.redirect("/dashboard")
     } else {
       console.log("Incorrect password");
     }
@@ -106,6 +116,13 @@ app.post("/login", async function (req, res) {
   // if request password == db password, login successful
   // else send error Incorrect password
 });
+app.get("/dashboard", (req, res) => {
+  if (req.session.isLoggedIn) {
+    res.send("Welcome to the dashboard, "+ req.session.userEmail)
+  } else {
+    res.send("Please login first")
+  }
+})
 // app.put
 // app.delete
 
